@@ -1,0 +1,8 @@
+langchain
+langchain-community
+youtube-transcript-api
+streamlit
+langchain_ollama
+moviepy
+pytube
+whisper
