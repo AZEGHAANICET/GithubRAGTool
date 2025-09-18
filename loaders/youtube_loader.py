@@ -2,11 +2,11 @@ from youtube_transcript_api._errors import TranscriptsDisabled, VideoUnavailable
 from typing import Any
 from youtube_transcript_api import YouTubeTranscriptApi
 import whisper
-import pytube
+from pytube import YouTube
 from typing import List, Dict
 from langchain_core.documents import Document
 
-def fetch_video_transcript(video_id: str, chunk_size:int=30) -> list[dict]:
+def fetch_video_transcript(video_id: str, chunk_size:int=30) -> list[Dict]:
     """
     Fetch the transcript of a YouTube video using its video ID.
 
@@ -25,11 +25,15 @@ def fetch_video_transcript(video_id: str, chunk_size:int=30) -> list[dict]:
         RuntimeError: If fetching the transcript fails due to an unexpected error.
     """
     try:
+        url = f"https://www.youtube.com/watch?v={video_id}"
+
         transcript_api = YouTubeTranscriptApi()
         transcript_data = transcript_api.fetch(video_id, languages=["en", "fr"])
         transcript_chunks = []
-        current_chunk = {"start":None, "end":None, "text":""}
+        current_chunk = {"start":None, "end":None, "text":"", "url":url}
+
         accumaled_time = 0.0
+
         for transcript in transcript_data:
             start_time  = transcript.start
             end_time = transcript.duration
@@ -42,7 +46,7 @@ def fetch_video_transcript(video_id: str, chunk_size:int=30) -> list[dict]:
                 current_chunk["end"] = start_time
                 transcript_chunks.append(current_chunk)
 
-                current_chunk = {"start":start_time, "end":None, "text":text}
+                current_chunk = {"start":start_time, "end":None, "text":text, "url":url}
                 accumaled_time = end_time
             else:
                 current_chunk["text"] +=(" " if current_chunk["text"] else "") + text
@@ -81,8 +85,10 @@ def build_document(transcript_chunks: List[Dict]) -> List[Document]:
             page_content=chunk["text"],
             metadata={
                 "start": chunk["start"],
-                "end": chunk["end"]
+                "end": chunk["end"],
+                "url": chunk["url"]
             }
         )
         documents.append(document)
     return documents
+
